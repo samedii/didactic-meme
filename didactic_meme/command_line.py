@@ -13,6 +13,7 @@ def create(ModelConfig: Config) -> None:
     config = ModelConfig()
     config.save(args.model_dir)
 
+
 def train(ModelConfig: Config, train_func: Callable[[Config], None]) -> None:
     parser = argparse.ArgumentParser(description='Create model config')
     parser.add_argument('model_dir', default='model')

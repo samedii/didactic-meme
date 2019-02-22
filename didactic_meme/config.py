@@ -5,10 +5,13 @@ from .adict import adict
 
 class Config(adict):
     def __init__(self, model_dir=None, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(**self.default_values())
         self.model_dir = model_dir
         if model_dir is not None:
             self.load(model_dir)
+
+    def default_values(self):
+        raise NotImplementedError()
 
     def config_path(self):
         return os.path.join(self.model_dir, 'config.json')
@@ -25,6 +28,7 @@ class Config(adict):
 
     def load(self, model_dir):
         self.model_dir = model_dir
+
         with open(self.config_path(), 'r') as file:
             new_config = json.load(file)
             self.deep_update(new_config)
