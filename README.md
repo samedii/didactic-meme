@@ -6,3 +6,10 @@ A modelling suite with extra focus on pytorch
 * Easier model comparison and highscores
 * Visualize model predictions
 * Easily expose model via web api
+
+## TODO
+
+- [ ] Save models by epoch
+- [ ] Score models and list highscore
+- [ ] Tensorboardx
+- [ ] Need to handle custom pre-processing
