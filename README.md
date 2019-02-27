@@ -7,9 +7,30 @@ A modelling suite with extra focus on pytorch
 * Visualize model predictions
 * Easily expose model via web api
 
+Planned features:
+- [x] Model config
+- [ ] Standard training loop
+- [x] Setup loggers
+- [x] Command line config and training
+- [ ] Visualize blackbox solution
+- [ ] Web api helper
+- [x] Training helper functions
+
+## Usage
+
+### Standard training loop
+
+    def get_loss(batch):
+        # ...
+        return loss
+
+    model_suite.fit(get_loss, model, optimizer, train_loader,
+        validate_loader, config)
+
+
 ## TODO
 
-- [ ] Save models by epoch
+- [x] Save models by epoch
 - [ ] Score models and list highscore
-- [ ] Tensorboardx
+- [x] Tensorboardx
 - [ ] Need to handle custom pre-processing

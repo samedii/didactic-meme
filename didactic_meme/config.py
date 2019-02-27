@@ -3,6 +3,14 @@ import json
 from .adict import adict
 
 
+def make_config_class(**default_values):
+    class ModelConfig(Config):
+        def default_values(self):
+            return default_values
+
+    return ModelConfig
+
+
 class Config(adict):
     def __init__(self, model_dir=None, **kwargs):
         super().__init__(**self.default_values())
