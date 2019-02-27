@@ -1,5 +1,7 @@
 import os
+import sys
 import json
+import random
 from .adict import adict
 
 
@@ -14,6 +16,9 @@ def make_config_class(**default_values):
 class Config(adict):
     def __init__(self, model_dir=None, **kwargs):
         super().__init__(**self.default_values())
+        if 'seed' not in self.to_dict():
+            self['seed'] = random.randrange(sys.maxsize)
+
         self.model_dir = model_dir
         if model_dir is not None:
             self.load(model_dir)

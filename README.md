@@ -9,7 +9,7 @@ A modelling suite with extra focus on pytorch
 
 Planned features:
 - [x] Model config
-- [ ] Standard training loop
+- [x] Standard training loop
 - [x] Setup loggers
 - [x] Command line config and training
 - [ ] Visualize blackbox solution
@@ -20,16 +20,32 @@ Planned features:
 
 ### Standard training loop
 
-    def get_loss(batch):
-        # ...
-        return loss
+    def train(train_ds, validate_ds, config):
 
-    model_suite.fit(get_loss, model, optimizer, train_loader,
-        validate_loader, config)
+        # define model, optimizer, data_loaders
+
+        def train_batch(features, labels):
+            log_prob = get_log_prob(features, labels, model)
+            loss = -log_prob.mean()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            return dict(
+                log_prob=discriminator_log_prob.sum(),
+            )
+
+        def eval_batch(features, boards):
+            return dict(
+                discriminator_log_prob=get_log_prob(features, labels, model).sum(),
+            )
+
+        model_suite.train(train_batch, eval_batch, train_loader, validate_loader, model, optimizer, config)
 
 
 ## TODO
 
+- [ ] Reconsider how api and helpers work
 - [x] Save models by epoch
 - [ ] Score models and list highscore
 - [x] Tensorboardx

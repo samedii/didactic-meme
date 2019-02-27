@@ -1,5 +1,8 @@
 import os
+import time
 import logging
+import torch
+import tensorboardX as tbx
 logger = logging.getLogger(__name__)
 
 
@@ -42,10 +45,79 @@ def merge_epoch_results(**results_dict):
             merged_results[key][type] = value
     return merged_results
 
+def epoch(batch_func, data_loader, config, sample_weight=None):
+    '''
+    Sums results from batch_func and finally divides by length of
+    dataset or sum of sample weights
+    '''
+    device = torch.device('cuda' if config.cuda else 'cpu')
 
-def train_epoch(loss_func, data_loader, epoch):
-    model.train()
+    results = None
+    for batch in data_loader:
+        batch_results = batch_func(*[d.to(device) for d in batch])
 
-    for batch_idx, batch in enumerate(data_loader):
-        batch = [b.to(device) for b in batch]
-        loss = loss_func(batch, epoch)
+        if results is None:
+            results = batch_results
+        else:
+            for key, value in results.items():
+                results[key] += batch_results[key]
+
+    if sample_weight is None:
+        for key, value in results.items():
+            results[key] /= len(data_loader.dataset) # TODO: does not handle drop_last=True?
+    else:
+        for key, value in results.items():
+            if key != sample_weight:
+                results[key] /= results[sample_weight]
+        del results[sample_weight]
+
+    return results
+
+def train(train_func, eval_func, train_loader, validate_loader, model, optimizer, config, sample_weight=None):
+    torch.manual_seed(config.seed)
+    logger.info(f'seed: {config.seed}')
+
+    tb = tbx.SummaryWriter(log_dir=config.model_dir)
+
+    for epoch_number in range(1, config.n_epochs + 1):
+        start_time = time.time()
+        model.train()
+        train_results = epoch(train_func, train_loader, config, sample_weight=sample_weight)
+
+        model.eval()
+        with torch.no_grad():
+            validate_results = epoch(eval_func, validate_loader, config, sample_weight=sample_weight)
+
+        epoch_results = merge_epoch_results(train=train_results, validate=validate_results)
+        add_tb_scalars(tb, epoch_results, epoch_number)
+
+        if config.save_interval is not None and epoch_number % config.save_interval == 0:
+            save_checkpoint(dict(
+                epoch=epoch_number,
+                model=model.state_dict(),
+                optimizer=optimizer.state_dict(),
+            ), config)
+
+        time_spent = time.time() - start_time
+        logger.info(get_logger_text(epoch_number, config.n_epochs, time_spent,
+            epoch_results))
+
+class MultipleOptimizers:
+    def __init__(self, *optimizers):
+        self.optimizers = optimizers
+
+    def zero_grad(self):
+        for optimizer in self.optimizers:
+            optimizer.zero_grad()
+
+    def step(self):
+        for optimizer in self.optimizers:
+            optimizer.step()
+
+    def state_dict(self):
+        for optimizer in self.optimizers:
+            optimizer.state_dict()
+
+    def load_state_dict(self, state_dicts):
+        for optimizer, state_dict in zip(self.optimizers, state_dicts):
+            optimizer.load_state_dict(state_dict)
