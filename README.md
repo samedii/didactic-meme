@@ -16,37 +16,97 @@ Planned features:
 - [ ] Web api helper
 - [x] Training helper functions
 
-## Usage
-
-### Standard training loop
-
-    def train(train_ds, validate_ds, config):
-
-        # define model, optimizer, data_loaders
-
-        def train_batch(features, labels):
-            log_prob = get_log_prob(features, labels, model)
-            loss = -log_prob.mean()
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            return dict(
-                log_prob=discriminator_log_prob.sum(),
-            )
-
-        def eval_batch(features, boards):
-            return dict(
-                discriminator_log_prob=get_log_prob(features, labels, model).sum(),
-            )
-
-        model_suite.train(train_batch, eval_batch, train_loader, validate_loader, model, optimizer, config)
-
-
 ## TODO
 
-- [ ] Reconsider how api and helpers work
+- [x] Reconsider how api and helpers work
 - [x] Save models by epoch
 - [ ] Score models and list highscore
 - [x] Tensorboardx
 - [ ] Need to handle custom pre-processing
+
+## Usage
+Draft of how the library should be used.
+
+### Overly simplistic training
+No custom code or metrics
+
+    def train(train_ds, validate_ds, config):
+        # create train_loader, validate_loader, model, and optimizer
+        model_suite.Trainer(train_loader, validate_loader, model, optimizer, config).train()
+
+### Standard training loop
+Custom metric
+
+    class Trainer(model_suite.Trainer):
+        def train_batch(self, features, labels):
+            log_prob = model(features).log_prob(labels)
+            loss = -log_prob.mean()
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+            return dict(
+                log_prob=log_prob.sum(),
+                accuracy=get_accuracy(features, labels, self.model).mean(),
+            )
+
+        def evaluate_batch(self, features, labels):
+            return dict(
+                log_prob=model(features).log_prob(labels).sum(),
+                accuracy=get_accuracy(features, labels, self.model).mean(),
+            )
+
+        def summarize_epoch(train_results, validate_results, epoch):
+            train_results, validate_results = self.zip_dicts(train_results), self.zip_dicts(validate_results)
+
+            train_results = {key: sum(value)/len(self.train_loader.dataset) for key, value in train_results.items()}
+            validate_results = {key: sum(value)/len(self.validate_loader.dataset) for key, value in validate_results.items()}
+
+            epoch_results = self.merge_add_level(train=train_results, validate=validate_results)
+            self.add_tb_scalars(epoch_results, epoch)
+
+            return {key: epoch_results[key] for key in ['log_prob']}
+
+    def train(train_ds, validate_ds, config):
+        # create train_loader, validate_loader, model, and optimizer
+        Trainer(train_loader, validate_loader, model, optimizer, config).train()
+
+
+### Generative Adverserial Model
+
+    class Trainer(model_suite.Trainer):
+        def train_batch(self, features, boards):
+            discriminator_log_prob = self.model.get_discriminator_log_prob(features, boards)
+            generator_log_prob = self.model.get_generator_log_prob(features)
+
+            discriminator_loss = -discriminator_log_prob.mean()
+            self.optimizer.discriminator_optimizer.zero_grad()
+            discriminator_loss.backward()
+            self.optimizer.discriminator_optimizer.step()
+
+            generator_loss = -generator_log_prob.mean()
+            self.optimizer.generator_optimizer.zero_grad()
+            generator_loss.backward()
+            self.optimizer.generator_optimizer.step()
+
+            return dict(
+                discriminator_log_prob=discriminator_log_prob.sum(),
+                generator_log_prob=generator_log_prob.sum(),
+            )
+
+        def evaluate_batch(self, features, boards):
+            return dict(
+                discriminator_log_prob=self.model.get_discriminator_log_prob(features, boards).sum(),
+                generator_log_prob=self.model.get_generator_log_prob(features).sum(),
+            )
+
+
+    def train(train_ds, validate_ds, config):
+        # setup data loaders, model and optimizers
+        
+        optimizer = model_suite.MultipleOptimizers(
+            generator_optimizer=...,
+            discriminator_optimizer=...,
+        )
+
+        Trainer(train_loader, validate_loader, model, optimizer, config).train()
