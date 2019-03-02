@@ -6,6 +6,8 @@ A modelling suite with extra focus on pytorch
 * Easier model comparison and highscores
 * Visualize model predictions
 * Easily expose model via web api
+* Hash train, validate, and test datasets separately
+
 
 Planned features:
 - [x] Model config
@@ -15,6 +17,7 @@ Planned features:
 - [ ] Visualize blackbox solution
 - [ ] Web api helper
 - [x] Training helper functions
+- [ ] Intra-epoch logging
 
 ## TODO
 
@@ -23,6 +26,7 @@ Planned features:
 - [ ] Score models and list highscore
 - [x] Tensorboardx
 - [ ] Need to handle custom pre-processing
+- [ ] Continue training/tuning from checkpoint (hash initial model)
 
 ## Usage
 Draft of how the library should be used.
@@ -103,7 +107,7 @@ Custom metric
 
     def train(train_ds, validate_ds, config):
         # setup data loaders, model and optimizers
-        
+
         optimizer = model_suite.MultipleOptimizers(
             generator_optimizer=...,
             discriminator_optimizer=...,

@@ -112,7 +112,10 @@ class Trainer:
             with torch.no_grad():
                 validate_results = [self.evaluate_batch(*[d.to(device) for d in batch]) for batch in self.validate_loader]
 
-            if self.config.save_interval is not None and epoch % self.config.save_interval == 0:
+            if epoch == self.config.n_epochs or (
+                self.config.save_interval is not None and
+                epoch % self.config.save_interval == 0
+            ):
                 self.save_checkpoint(epoch)
                 self.logger.info('saved checkpoint')
 
@@ -127,11 +130,11 @@ class MultipleOptimizers:
         self.optimizers = optimizers
 
     def zero_grad(self):
-        for optimizer in self.optimizers:
+        for optimizer in self.optimizers.values():
             optimizer.zero_grad()
 
     def step(self):
-        for optimizer in self.optimizers:
+        for optimizer in self.optimizers.values():
             optimizer.step()
 
     def state_dict(self):
