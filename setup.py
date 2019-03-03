@@ -7,5 +7,5 @@ setup(
    author='Richard Löwenström',
    author_email='samedii@github.com',
    packages=['didactic_meme'],
-   install_requires=['torch', 'dash', 'flask'],
+   install_requires=['torch', 'dash', 'flask', 'sklearn'],
 )

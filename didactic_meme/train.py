@@ -16,10 +16,11 @@ class Trainer:
         self.optimizer = optimizer
         self.config = config
 
+        self.device = torch.device('cuda' if self.config.cuda else 'cpu')
         self.tb = tbx.SummaryWriter(log_dir=config.model_dir)
 
     def save_checkpoint(self, epoch):
-        save_dir = os.path.join(self.config.model_dir, 'save') # TODO: move to model-suite?
+        save_dir = self.config.get_checkpoint_dir()
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
@@ -27,15 +28,11 @@ class Trainer:
             epoch=epoch,
             model=self.model.state_dict(),
             optimizer=self.optimizer.state_dict(),
-        ), os.path.join(save_dir, self.get_save_filename(epoch)))
+        ), self.config.get_checkpoint_path(epoch))
 
     def add_tensorboard_scalars(self, scalars_dict, epoch):
         for name, scalars in scalars_dict.items():
             self.tb.add_scalars(name, scalars, epoch)
-
-    def get_save_filename(self, epoch):
-        n_epochs_chars = len(str(self.config.n_epochs))
-        return f'epoch{epoch:0{n_epochs_chars}d}.pth'
 
     def get_logger_text(self, epoch, time_spent, epoch_summary):
         n_epochs_chars = len(str(self.config.n_epochs))
@@ -98,19 +95,20 @@ class Trainer:
 
 
     def train(self):
-        torch.manual_seed(self.config.seed)
-        self.logger.info(f'seed: {self.config.seed}')
-
-        device = torch.device('cuda' if self.config.cuda else 'cpu')
+        if self.config.seed is None:
+            self.logger.info(f'no seed')
+        else:
+            torch.manual_seed(self.config.seed)
+            self.logger.info(f'seed: {self.config.seed}')
 
         for epoch in range(1, self.config.n_epochs + 1):
             start_time = time.time()
             self.model.train()
-            train_results = [self.train_batch(*[d.to(device) for d in batch]) for batch in self.train_loader]
+            train_results = [self.train_batch(*[d.to(self.device) for d in batch]) for batch in self.train_loader]
 
             self.model.eval()
             with torch.no_grad():
-                validate_results = [self.evaluate_batch(*[d.to(device) for d in batch]) for batch in self.validate_loader]
+                validate_results = [self.evaluate_batch(*[d.to(self.device) for d in batch]) for batch in self.validate_loader]
 
             if epoch == self.config.n_epochs or (
                 self.config.save_interval is not None and

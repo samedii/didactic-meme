@@ -45,3 +45,11 @@ class Config(adict):
         with open(self.config_path(), 'r') as file:
             new_config = json.load(file)
             self.deep_update(new_config)
+
+    def get_checkpoint_dir(self):
+        return os.path.join(self.model_dir, 'checkpoints')
+
+    def get_checkpoint_path(self, epoch):
+        n_epochs_chars = len(str(self.n_epochs))
+        checkpoint_filename = f'epoch{epoch:0{n_epochs_chars}d}.pth'
+        return os.path.join(self.get_checkpoint_dir(), checkpoint_filename)

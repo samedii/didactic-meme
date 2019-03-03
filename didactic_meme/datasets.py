@@ -1,4 +1,6 @@
 import hashlib
+import sklearn
+import sklearn.model_selection
 
 
 def get_file_hash(file_path, BLOCKSIZE=65536):
@@ -14,3 +16,25 @@ def get_file_hash(file_path, BLOCKSIZE=65536):
 
 def get_dataframe_hash(df):
     return hashlib.sha256(pd.util.hash_pandas_object(df, index=True).values).hexdigest()
+
+
+def train_test_split(*data, test_size=0.25, random_state=None):
+    n_inputs = len(data)
+    split = sklearn.model_selection.train_test_split(*data, test_size=test_size, random_state=random_state)
+    return [
+        [split[split_index + 2*i] for i in range(n_inputs)]
+        for split_index in [0, 1]
+    ]
+
+def train_test_split(*data, test_size=0.25, random_state=None):
+    n_inputs = len(data)
+    split = sklearn.model_selection.train_test_split(*data, test_size=test_size, random_state=random_state)
+    return [
+        [split[split_index + 2*i] for i in range(n_inputs)]
+        for split_index in [0, 1]
+    ]
+
+def train_validate_test_split(*data, validate_size=0.25, test_size=0.25, random_state=None):
+    test_split = train_test_split(*data, test_size=test_size, random_state=random_state)
+    validate_split = train_test_split(*test_split[0], test_size=validate_size/(1 - test_size), random_state=random_state)
+    return validate_split[0], validate_split[1], test_split[1]
