@@ -27,6 +27,7 @@ Planned features:
 - [x] Tensorboardx
 - [ ] Need to handle custom pre-processing
 - [ ] Continue training/tuning from checkpoint (hash initial model)
+- [ ] Tabular logging like skorch
 
 ## Usage
 Draft of how the library should be used.
